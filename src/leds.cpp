@@ -15,8 +15,19 @@ void initLeds(Adafruit_NeoPixel *backlightLeds, uint8_t serial_pin) {
   neoPixel = backlightLeds;
   neoPixel->begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
   neoPixel->show();            // Turn OFF all pixels ASAP
-  neoPixel->setBrightness(15); // Set BRIGHTNESS to about 1/5 (max = 255)
+  neoPixel->setBrightness(30); // Set BRIGHTNESS to about 1/5 (max = 255)
 }
+
+// Enable/Disable HV power supply
+void setLedsMode(uint8_t mode) {
+  config.ledMode = mode;
+  // if (config.nixieMode == 0) {
+  //   digitalWrite(nixies_hv_enable_pin, LOW );
+  // } else {
+  //   digitalWrite(nixies_hv_enable_pin, HIGH );
+  // }
+}
+
 
 // Fill strip pixels one after another with a color. Strip is NOT cleared
 // first; anything there will be covered pixel by pixel. Pass in color

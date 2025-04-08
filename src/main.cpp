@@ -7,6 +7,10 @@
 // ****************************************************************************
 
 #include <Arduino.h>
+#include <config.h>
+#include <storage.h>
+
+// #include "FieldTypes.h"
 
 // ****************************************************************************
 //
@@ -29,14 +33,19 @@
 // ****************************************************************************
 
 bool gInterrupted = false;
-uint8_t displayMode = 0; // 0 - Clock / 1 - all digits 0-9 / 2 - every individual bit
-uint8_t ledMode = 1; // 0 - Rainbow / 1 - Fixed Orange
+
+globalConfig config;
+
+// uint8_t ledMode = 1; // 0 - Rainbow / 1 - Fixed Orange
+// uint8_t nixieMode = 1; // 0 - Off / 1 - Clock / 2 - all digits 0-9 / 3 - every individual bit
+
 
 // Debug levels
 #define DEBUG                 0
 #define DEBUG_WIFI            0
 #define DEBUG_TIME            0
 #define DEBUG_SHIFT_REGISTER  0
+#define DEBUG_EEPROM          0
 
 // Displays
 #include <Adafruit_NeoPixel.h>
@@ -82,16 +91,23 @@ void ARDUINO_ISR_ATTR onTimer() {
 void setup() {
 
   Serial.begin(115200);
-  delay(1000);
+  delay(500);
 
   Serial.println();
-  Serial.println("Nixie Clock - (c) 2024 Jose Olcese");
+  Serial.println("Nixie Clock - (c) 2025 Jose Olcese");
   Serial.println();
+
+  uint8_t *bytePtr = (uint8_t*)&config;
+  for (uint8_t i = 0 ; i < sizeof(config) ; i++) {
+    bytePtr[i] = 0;
+  }
+
+  storageInit(DEBUG_EEPROM);
 
   // Setup Nixies
   initNixies(NIXIE_SERIAL_IN_PIN, NIXIE_SRCK_PIN, NIXIE_RCK_PIN, NIXIE_HV_ENABLE_PIN, DEBUG_SHIFT_REGISTER);
   displayNixies(0, 0, 0);
-  switchNixies(HIGH);
+  setNixiesMode(config.nixieMode);
 
   // Setup LEDS
   initLeds(&backlightLeds, LED_PIN);
@@ -124,7 +140,7 @@ void everyOneSecond() {
   static uint8_t value2 = 0;
 
   if (DEBUG) {
-  Serial.printf("displayMode: %d\n", displayMode);
+  Serial.printf("nixieMode: %d\n", config.nixieMode);
   }
   // Serial.printf("value1: %d - value2: %d\n", value1, value2);
 
@@ -134,8 +150,11 @@ void everyOneSecond() {
   
   timeClient.setTimeOffset(gOffset);
 
-  switch (displayMode) {
+  switch (config.nixieMode) {
     case 0:
+      break;
+
+    case 1:
       // if (hours + gOffset > 0) {
       //   hours = hours + gOffset;
       // } else {
@@ -148,13 +167,13 @@ void everyOneSecond() {
       displayNixies(timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds());
       break;
 
-    case 1: 
+    case 2: 
       displayNixies(value1 * 11, value1 * 11, value1 * 11);
       value1++;
       if (value1 == 10) value1 = 0;
       break;
 
-    case 2:
+    case 3:
       uint8_t localShiftRegisterBitArray[SHIFT_REGISTER_ARRAY_SIZE];
       if (value2 == 4) {
         for (int temp = 0 ; temp < 72; temp ++) {
@@ -198,13 +217,17 @@ void loop() {
     everyOneSecond();
   }
 
-  switch (ledMode) {
+  switch (config.ledMode) {
     case 0:
-      rainbow();             // Flowing rainbow cycle along the whole strip
+      colorWipe(backlightLeds.Color(0, 0, 0)); // Off
       delay(20);
       break;
     case 1:
       colorWipe(backlightLeds.Color(255, 75, 0)); // Orange
+      delay(20);
+      break;
+    case 2:
+      rainbow();             // Flowing rainbow cycle along the whole strip
       delay(20);
       break;
     default:

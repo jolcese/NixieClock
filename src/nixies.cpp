@@ -34,8 +34,13 @@ void initNixies (uint8_t serial_pin, uint8_t shift_register_clock_pin, uint8_t r
 }
 
 // Enable/Disable HV power supply
-void switchNixies(bool isOn) {
-   digitalWrite(nixies_hv_enable_pin, isOn );
+void setNixiesMode(uint8_t mode) {
+  config.nixieMode = mode;
+  if (config.nixieMode == 0) {
+    digitalWrite(nixies_hv_enable_pin, LOW );
+  } else {
+    digitalWrite(nixies_hv_enable_pin, HIGH );
+  }
 }
 
 // Display hours/minutes/seconds (00-99 on each pair of digits)
